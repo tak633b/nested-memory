@@ -4,7 +4,7 @@
 <plist version="1.0">
 <dict>
   <key>Label</key>
-  <string>com.baltech.nested-memory.daily</string>
+  <string>com.nested-memory.app.weekly</string>
 
   <key>ProgramArguments</key>
   <array>
@@ -12,25 +12,28 @@
     <string>__HOME__/.openclaw/extensions/nested-memory/cli.py</string>
     <string>compress</string>
     <string>--layer</string>
-    <string>1</string>
+    <string>2</string>
   </array>
 
+  <!-- Every Monday (Weekday=2) at 3:30 AM -->
   <key>StartCalendarInterval</key>
   <dict>
+    <key>Weekday</key>
+    <integer>2</integer>
     <key>Hour</key>
     <integer>3</integer>
     <key>Minute</key>
-    <integer>0</integer>
+    <integer>30</integer>
   </dict>
 
   <key>WorkingDirectory</key>
   <string>__HOME__/.openclaw/extensions/nested-memory</string>
 
   <key>StandardOutPath</key>
-  <string>__HOME__/.openclaw/logs/nested-memory-daily.log</string>
+  <string>__HOME__/.openclaw/logs/nested-memory-weekly.log</string>
 
   <key>StandardErrorPath</key>
-  <string>__HOME__/.openclaw/logs/nested-memory-daily.err</string>
+  <string>__HOME__/.openclaw/logs/nested-memory-weekly.err</string>
 
   <key>EnvironmentVariables</key>
   <dict>
