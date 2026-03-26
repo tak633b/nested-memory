@@ -311,3 +311,80 @@ def test_deduplicate_empty_layer(tmp_store):
     tmp_store.add("一件だけ", layer=1)
     results = tmp_store.deduplicate_similar(layer=1, dry_run=True)
     assert results == []
+
+
+# ─────────────────────────────────────────
+# tag lowercase normalization (v0.1.2)
+# ─────────────────────────────────────────
+
+def test_normalize_tags_lowercase():
+    """大文字タグが小文字に統一されること"""
+    from nested_memory.store import _normalize_tags
+    result = _normalize_tags(["SpaceMolt", "WORK", "MyTag"])
+    assert result == ["spacemolt", "work", "mytag"]
+
+
+def test_normalize_tags_lowercase_known():
+    """TAG_NORMALIZATION経由でも最終的に小文字になること"""
+    from nested_memory.store import _normalize_tags
+    # "L1" → TAG_NORMALIZATION → "episodic" → lower → "episodic"
+    result = _normalize_tags(["L1"])
+    assert result == ["episodic"]
+
+
+# ─────────────────────────────────────────
+# rebalance_importance (v0.1.2)
+# ─────────────────────────────────────────
+
+def test_rebalance_dry_run(tmp_store):
+    """dry_run=Trueで変更なし、候補リスト返却"""
+    # 0.8以上を多数追加して50%超えにする
+    for _ in range(6):
+        tmp_store.add("high importance memory", layer=1, importance=0.85)
+    for _ in range(4):
+        tmp_store.add("low importance memory", layer=1, importance=0.4)
+
+    before = {m.id: m.importance for m in tmp_store.get_by_layer(1)}
+    changes = tmp_store.rebalance_importance(layer=1, dry_run=True)
+
+    # dry_run=True: DBは変わらない
+    after = {m.id: m.importance for m in tmp_store.get_by_layer(1)}
+    assert before == after
+
+    # 候補リストは返る
+    assert isinstance(changes, list)
+    assert len(changes) > 0
+    for c in changes:
+        assert "id" in c
+        assert "old" in c
+        assert "new" in c
+        assert c["new"] < c["old"]
+
+
+def test_rebalance_applies(tmp_store):
+    """dry_run=Falseで実際にimportanceが下がること"""
+    for _ in range(6):
+        tmp_store.add("high importance memory", layer=1, importance=0.85)
+    for _ in range(4):
+        tmp_store.add("low importance memory", layer=1, importance=0.4)
+
+    changes = tmp_store.rebalance_importance(layer=1, dry_run=False)
+    assert len(changes) > 0
+
+    # 実際にDBが更新されている
+    for c in changes:
+        mem = tmp_store.get(c["id"])
+        assert mem is not None
+        assert abs(mem.importance - c["new"]) < 1e-6
+
+
+def test_rebalance_no_action_below_50pct(tmp_store):
+    """0.8以上が50%以下の場合は何も変更しない"""
+    # 0.8以上: 4件, 未満: 6件 → 40% < 50% → 補正不要
+    for _ in range(4):
+        tmp_store.add("high memory", layer=1, importance=0.85)
+    for _ in range(6):
+        tmp_store.add("normal memory", layer=1, importance=0.5)
+
+    changes = tmp_store.rebalance_importance(layer=1, dry_run=False)
+    assert changes == []

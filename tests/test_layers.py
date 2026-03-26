@@ -138,3 +138,12 @@ class TestAutoCompressionScheduler:
             tmp_store.add(f"memory {i}", layer=1)
         result = scheduler.compress_layer_now(1, force=False)
         assert result is None
+
+
+# ─────────────────────────────────────────
+# v0.1.2 threshold check
+# ─────────────────────────────────────────
+
+def test_default_threshold_l1_is_30():
+    """THRESHOLDS[1] == 30 を確認 (v0.1.2)"""
+    assert AutoCompressionScheduler.THRESHOLDS[1] == 30

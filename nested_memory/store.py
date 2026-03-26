@@ -29,7 +29,8 @@ TAG_NORMALIZATION = {
 
 
 def _normalize_tags(tags: list) -> list:
-    return [TAG_NORMALIZATION.get(t, t) for t in tags]
+    normalized = [TAG_NORMALIZATION.get(t, t) for t in tags]
+    return [t.lower() for t in normalized]
 
 LAYER_TTL_DAYS = {
     1: 7,    # L1 Episodic
@@ -500,6 +501,58 @@ class NestedMemoryStore:
                 break  # 1メモリにつき1ペアのみ
 
         return results
+
+    def rebalance_importance(
+        self,
+        layer: int = 1,
+        dry_run: bool = True,
+    ) -> list:
+        """
+        既存記録のimportanceを正規分布に近づける。
+        0.8以上が全体の50%超の場合、0.75以上の記録を以下のルールで補正:
+        - 0.75-0.84 → 0.6 (一般情報として再分類)
+        - 0.85-0.94 → 0.75 (重要だが最高ではない)
+        - 0.95以上はそのまま
+        dry_run=True: 変更予定リストを返すが変更しない
+        dry_run=False: 実際に更新する
+        戻り値: [{"id": str, "old": float, "new": float}]
+        """
+        memories = self.get_by_layer(layer)
+        if not memories:
+            return []
+
+        total = len(memories)
+        high_count = sum(1 for m in memories if m.importance >= 0.8)
+        # 0.8以上が50%超でない場合は補正不要
+        if high_count <= total * 0.5:
+            return []
+
+        changes = []
+        for m in memories:
+            imp = m.importance
+            if imp >= 0.95:
+                new_imp = imp  # そのまま
+            elif imp >= 0.85:
+                new_imp = 0.75
+            elif imp >= 0.75:
+                new_imp = 0.6
+            else:
+                continue  # 0.75未満は補正対象外
+
+            if abs(new_imp - imp) < 1e-9:
+                continue  # 変化なし（0.95以上はスキップ）
+
+            changes.append({"id": m.id, "old": round(imp, 4), "new": round(new_imp, 4)})
+
+        if not dry_run:
+            for change in changes:
+                self._conn.execute(
+                    "UPDATE memories SET importance = ? WHERE id = ?",
+                    (change["new"], change["id"]),
+                )
+            self._conn.commit()
+
+        return changes
 
     def delete_expired(self) -> int:
         """期限切れメモリを削除。削除件数を返す"""

@@ -265,6 +265,31 @@ def cmd_dedupe(args):
     store.close()
 
 
+def cmd_rebalance(args):
+    """既存記録のimportanceを正規分布に近づける"""
+    store = get_store(args.db)
+    layer = _resolve_layer(args.layer) if args.layer else 1
+    dry_run = args.dry_run
+
+    changes = store.rebalance_importance(layer=layer, dry_run=dry_run)
+
+    if not changes:
+        print(f"✅ 補正対象なし (L{layer}) — 0.8以上が全体の50%以下、または記録なし")
+        store.close()
+        return
+
+    mode = "dry-run" if dry_run else "実行"
+    print(f"⚖️  importance補正 {len(changes)} 件 [{mode}] (L{layer}):")
+    print()
+    for c in changes:
+        print(f"  {c['id'][:16]}...  {c['old']:.2f} → {c['new']:.2f}")
+
+    if dry_run:
+        print()
+        print("ℹ️  --no-dry-run を指定すると実際に更新します")
+    store.close()
+
+
 def cmd_delete_expired(args):
     """期限切れメモリを削除"""
     store = get_store(args.db)
@@ -364,6 +389,20 @@ Examples:
     p_dedupe.add_argument("--no-dry-run", dest="dry_run", action="store_false",
                           help="実際に削除する")
 
+    # rebalance
+    p_rebalance = subparsers.add_parser(
+        "rebalance", help="importanceを正規分布に近づける補正"
+    )
+    p_rebalance.add_argument(
+        "--layer", default="1",
+        help="対象層 (1/2/3/4 または episodic/semantic/procedural/meta)",
+    )
+    p_rebalance.add_argument("--dry-run", dest="dry_run",
+                             action="store_true", default=True,
+                             help="補正候補表示のみ（変更しない）[デフォルト]")
+    p_rebalance.add_argument("--no-dry-run", dest="dry_run", action="store_false",
+                             help="実際に更新する")
+
     # list
     p_list = subparsers.add_parser("list", help="指定層のメモリ一覧")
     p_list.add_argument("--layer", default="1",
@@ -389,6 +428,8 @@ Examples:
         cmd_dedupe(args)
     elif args.command == "list":
         cmd_list(args)
+    elif args.command == "rebalance":
+        cmd_rebalance(args)
     else:
         parser.print_help()
         sys.exit(0)

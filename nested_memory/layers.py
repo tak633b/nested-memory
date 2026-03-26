@@ -2,9 +2,12 @@
 layers.py — 4層圧縮ロジック + 自動トリガー
 CompressionEngine + AutoCompressionScheduler
 """
+import logging
 import sys
 from typing import Optional
 from .store import NestedMemoryStore, Memory, LAYER_NAMES
+
+logger = logging.getLogger(__name__)
 
 
 class CompressionEngine:
@@ -83,7 +86,8 @@ class AutoCompressionScheduler:
     各層のメモリ数が閾値を超えたら自動圧縮
     """
 
-    THRESHOLDS = {1: 50, 2: 100, 3: 30}  # L3→L4 auto-compression enabled by default (disable with auto_l4=False)
+    # L3→L4 auto-compression enabled by default (disable with auto_l4=False)
+    THRESHOLDS: dict[int, int] = {1: 30, 2: 100, 3: 30}
     BATCH_SIZE = 20  # 1回の圧縮バッチサイズ
 
     def __init__(self, store: NestedMemoryStore, llm=None, auto_l4: bool = True):
@@ -152,4 +156,18 @@ class AutoCompressionScheduler:
             return None
 
         batch = memories[:self.BATCH_SIZE]
-        return self.engine.compress_layer(from_layer, batch)
+        result = self.engine.compress_layer(from_layer, batch)
+
+        # compress後にdedupe（L1のみ、threshold=0.85）
+        if from_layer == 1:
+            remaining = self.store.get_by_layer(1)
+            if len(remaining) > 20:
+                dupes = self.store.deduplicate_similar(
+                    layer=1, threshold=0.85, dry_run=False
+                )
+                if dupes:
+                    logger.info(
+                        "Auto-dedupe after compress: %d pairs merged", len(dupes)
+                    )
+
+        return result

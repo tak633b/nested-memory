@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.2] - 2026-03-26
+
+### Improved
+- Tag normalization now lowercases all tags (e.g. "SpaceMolt" → "spacemolt")
+- `EXTRACT_SYSTEM` prompt: stronger guidance to use 0.5-0.6 as default importance range
+- L1 auto-compression threshold lowered from 50 → 30 (real-world data showed 120-entry buildup)
+- Auto-dedupe after L1 compression (threshold: 0.85)
+
+### Added
+- `rebalance_importance()`: post-hoc importance normalization for existing records
+- `nm rebalance [--dry-run]` CLI command
+
 ## [0.1.1] - 2026-03-26
 
 ### Added
