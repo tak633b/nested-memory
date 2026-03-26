@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 
-DEFAULT_DB_PATH = os.path.expanduser("~/.openclaw/nested-memory.db")
+DEFAULT_DB_PATH = os.path.expanduser("~/.nested-memory.db")
 
 LAYER_TTL_DAYS = {
     1: 7,    # L1 Episodic
