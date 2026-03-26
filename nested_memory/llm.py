@@ -1,7 +1,7 @@
 """
-llm.py — LLM抽象レイヤー
-Anthropic SDK直叩き + OpenClaw llm_client.py 両対応
-プロバイダー自動検出ロジック付き
+llm.py — LLM abstraction layer
+Direct Anthropic SDK + OpenClaw llm_client.py dual support
+Provider auto-detection logic included
 """
 import os
 import json
@@ -12,12 +12,12 @@ COMPRESS_MODEL = "claude-sonnet-4-6"
 
 
 def _get_anthropic_key() -> str:
-    """APIキー取得: OpenClaw auth-profiles.json（最優先）→ ANTHROPIC_API_KEY 環境変数（フォールバック）
-    task#92: OpenClawのキーを最優先にする（scripts/llm_client.py の実装パターンに準拠）
+    """Retrieve API key: OpenClaw auth-profiles.json (priority) -> ANTHROPIC_API_KEY env var (fallback)
+    task#92: Prioritize OpenClaw key (follows implementation pattern from scripts/llm_client.py)
     """
-    # 1. OpenClaw auth-profiles.json（最優先）
-    # main agentのプロファイルを最初に試みる
-    for agent_name in ("main", "mini-bal"):
+    # 1. OpenClaw auth-profiles.json (highest priority)
+    # Try the main agent profile first
+    for agent_name in ("main",):
         profiles_path = os.path.expanduser(
             f"~/.openclaw/agents/{agent_name}/agent/auth-profiles.json"
         )
@@ -30,7 +30,7 @@ def _get_anthropic_key() -> str:
         except Exception:
             pass
 
-    # 2. ANTHROPIC_API_KEY 環境変数（フォールバック）
+    # 2. ANTHROPIC_API_KEY environment variable (fallback)
     key = os.environ.get("ANTHROPIC_API_KEY", "")
     if key:
         return key
@@ -45,7 +45,7 @@ def _call_anthropic(
     max_tokens: int,
     temperature: float,
 ) -> str:
-    """Anthropic SDK直叩き"""
+    """Call Anthropic SDK directly"""
     import anthropic
 
     api_key = _get_anthropic_key()
@@ -65,58 +65,55 @@ def _call_anthropic(
     return resp.content[0].text
 
 
-# --- プロンプト定義 ---
+# --- Prompt definitions ---
 
-EXTRACT_SYSTEM = """あなたは会話から重要な記憶エントリを抽出するAIです。
-以下の会話テキストから、記憶に値するエントリを抽出してください。
-抽出基準:
-- 決定事項（何かが決まった、承認された）
-- 固有名詞（人名、プロジェクト名、ツール名）
-- 数値データ（金額、日付、割合）
-- タスク・行動項目
-- 感情的に重要な出来事
-- 手順・方法の発見
+EXTRACT_SYSTEM = """You are an AI that extracts important memory entries from conversations.
+Extract memory-worthy entries from the following conversation text.
+Extraction criteria:
+- Decisions made (something was decided, approved)
+- Proper nouns (names, project names, tool names)
+- Numerical data (amounts, dates, percentages)
+- Tasks and action items
+- Emotionally significant events
+- Discoveries of procedures or methods
 
-出力形式: JSON配列のみ。説明文は不要。
-[{"content": "記憶内容（1-2文）", "tags": ["tag1", "tag2"], "importance": 0.0-1.0}]
-重要度0.7以上のみ抽出してください（ノイズ除去）。"""
+Output format: JSON array only. No explanatory text.
+[{"content": "memory content (1-2 sentences)", "tags": ["tag1", "tag2"], "importance": 0.0-1.0}]
+Only extract entries with importance >= 0.7 (noise reduction)."""
 
-L1_TO_L2_SYSTEM = """あなたはエピソード記憶を意味記憶に圧縮するAIです。
-以下のエピソード記憶（会話の断片）を、意味的に統合・圧縮してください。
-要件:
-- 具体的な固有名詞・数値・日付は必ず保持すること
-- 重複・冗長な情報を除去すること
-- 1つの統合されたセマンティック記憶として出力すること
-- 日本語で出力すること
-出力: 圧縮された記憶テキストのみ（説明なし）"""
+L1_TO_L2_SYSTEM = """You are an AI that compresses episodic memories into semantic memories.
+Integrate and compress the following episodic memories (conversation fragments) semantically.
+Requirements:
+- Always preserve specific proper nouns, numbers, and dates
+- Remove duplicate and redundant information
+- Output as a single integrated semantic memory
+Output: Compressed memory text only (no explanation)"""
 
-L2_TO_L3_SYSTEM = """あなたはセマンティック記憶から手続き記憶を抽出するAIです。
-以下のセマンティック記憶から、再利用可能なパターン・手順・教訓を抽出してください。
-要件:
-- 「何をどうすればうまくいくか」という形式で記述
-- 具体的なコンテキストを抽象化して手順化すること
-- 将来の意思決定や行動に役立つ形で
-- 日本語で出力すること
-出力: 抽出されたパターン・手順・教訓テキストのみ（説明なし）"""
+L2_TO_L3_SYSTEM = """You are an AI that extracts procedural memories from semantic memories.
+Extract reusable patterns, procedures, and lessons from the following semantic memories.
+Requirements:
+- Describe in the format of "what to do and how to succeed"
+- Abstract concrete contexts into procedures
+- Make it useful for future decision-making and actions
+Output: Extracted patterns, procedures, and lesson text only (no explanation)"""
 
-L3_TO_L4_SYSTEM = """あなたは手続き記憶からメタ記憶（自己モデル）を生成するAIです。
-以下の手続き記憶から、高レベルなアイデンティティ・進化履歴・価値観を抽出してください。
-要件:
-- このエージェントが「何者か」「何が得意か」「どう成長してきたか」を表現する
-- 抽象度を上げ、本質的なパターンのみを残す
-- 日本語で出力すること
-出力: メタ記憶テキストのみ（説明なし）"""
+L3_TO_L4_SYSTEM = """You are an AI that generates meta-memories (self-model) from procedural memories.
+Extract high-level identity, evolution history, and values from the following procedural memories.
+Requirements:
+- Express "who this agent is", "what it excels at", "how it has grown"
+- Increase abstraction level, preserving only essential patterns
+Output: Meta-memory text only (no explanation)"""
 
-RERANK_SYSTEM = """あなたは検索結果を関連度でリランクするAIです。
-クエリと候補記憶のリストが与えられます。
-クエリとの関連度が高い順に候補のインデックス番号を並べてください。
-出力形式: JSON配列（インデックス番号のみ）例: [2, 0, 3, 1]"""
+RERANK_SYSTEM = """You are an AI that reranks search results by relevance.
+You are given a query and a list of candidate memories.
+List the candidate index numbers in order of relevance to the query.
+Output format: JSON array (index numbers only) e.g.: [2, 0, 3, 1]"""
 
 
 class MemoryLLM:
     """
-    OpenClaw (llm_client.py) / Anthropic SDK 両対応LLMクライアント
-    プロバイダー自動検出: ANTHROPIC_API_KEY → auth-profiles.json → エラー
+    LLM client supporting both OpenClaw (llm_client.py) and Anthropic SDK
+    Provider auto-detection: auth-profiles.json -> ANTHROPIC_API_KEY -> error
     """
 
     def __init__(self, extract_model: str = EXTRACT_MODEL, compress_model: str = COMPRESS_MODEL):
@@ -125,34 +122,34 @@ class MemoryLLM:
         self._api_key = _get_anthropic_key()
         if not self._api_key:
             raise RuntimeError(
-                "LLM APIキーが見つかりません。\n"
-                "ANTHROPIC_API_KEY 環境変数を設定するか、\n"
-                "~/.openclaw/agents/mini-bal/agent/auth-profiles.json を確認してください。"
+                "LLM API key not found.\n"
+                "Set the ANTHROPIC_API_KEY environment variable or\n"
+                "configure ~/.openclaw/agents/main/agent/auth-profiles.json."
             )
 
     def _call(self, prompt: str, system: str, model: str, max_tokens: int = 2048, temperature: float = 0.2) -> str:
-        """LLM呼び出し（Anthropic SDK）"""
+        """Invoke LLM (Anthropic SDK)"""
         return _call_anthropic(prompt, system, model, max_tokens, temperature)
 
     def extract(self, session_text: str) -> list:
-        """会話テキストからL1エントリを生成。JSON配列を返す"""
+        """Generate L1 entries from conversation text. Returns a JSON array."""
         try:
             result = self._call(
-                prompt=f"以下の会話から記憶エントリを抽出してください:\n\n{session_text}",
+                prompt=f"Extract memory entries from the following conversation:\n\n{session_text}",
                 system=EXTRACT_SYSTEM,
                 model=self.extract_model,
                 max_tokens=2048,
             )
-            # JSONパース
+            # Parse JSON
             result = result.strip()
-            # コードブロックの除去
+            # Remove code blocks if present
             if result.startswith("```"):
                 lines = result.split("\n")
                 result = "\n".join(lines[1:-1] if lines[-1] == "```" else lines[1:])
             extracted = json.loads(result)
             if not isinstance(extracted, list):
                 return []
-            # 重要度フィルタ（0.7以上）
+            # Filter by importance (>= 0.7)
             return [e for e in extracted if isinstance(e, dict) and e.get("importance", 0) >= 0.7]
         except Exception as e:
             print(f"[MemoryLLM] extract error: {e}", file=sys.stderr)
@@ -160,14 +157,14 @@ class MemoryLLM:
 
     def compress(self, memories, target_layer: int) -> str:
         """
-        memories: list[Memory] を受け取り、圧縮テキストを返す
-        target_layer: 圧縮先の層番号
+        Accepts list[Memory] and returns compressed text.
+        target_layer: destination layer number
         """
         content_list = "\n".join(
-            f"[{i+1}] (重要度:{m.importance:.1f}) {m.content}"
+            f"[{i+1}] (importance:{m.importance:.1f}) {m.content}"
             for i, m in enumerate(memories)
         )
-        prompt = f"以下の{len(memories)}件の記憶を圧縮してください:\n\n{content_list}"
+        prompt = f"Compress the following {len(memories)} memories:\n\n{content_list}"
 
         if target_layer == 2:
             system = L1_TO_L2_SYSTEM
@@ -191,9 +188,9 @@ class MemoryLLM:
 
     def rerank(self, query: str, candidates) -> list:
         """
-        クエリに対して候補記憶をリランク。
+        Rerank candidate memories against a query.
         candidates: list[Memory]
-        返値: リランク済みlist[Memory]
+        Returns: reranked list[Memory]
         """
         if not candidates:
             return candidates
@@ -201,7 +198,7 @@ class MemoryLLM:
         candidate_text = "\n".join(
             f"[{i}] {m.content[:200]}" for i, m in enumerate(candidates)
         )
-        prompt = f"クエリ: {query}\n\n候補記憶:\n{candidate_text}"
+        prompt = f"Query: {query}\n\nCandidate memories:\n{candidate_text}"
 
         try:
             result = self._call(
@@ -220,7 +217,7 @@ class MemoryLLM:
                 if isinstance(idx, int) and 0 <= idx < len(candidates) and idx not in seen:
                     reranked.append(candidates[idx])
                     seen.add(idx)
-            # 残ったものを末尾に追加
+            # Append any remaining candidates not yet included
             for i, m in enumerate(candidates):
                 if i not in seen:
                     reranked.append(m)

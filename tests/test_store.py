@@ -66,8 +66,8 @@ def test_add_multiple_layers(tmp_store):
 # ─────────────────────────────────────────
 
 def test_search_basic(tmp_store):
-    tmp_store.add("User is INFP-Tです", layer=2, tags=["person"])
-    tmp_store.add("University facility management", layer=2, tags=["work"])
+    tmp_store.add("Alice prefers visual learning styles", layer=2, tags=["person"])
+    tmp_store.add("University campus facility management", layer=2, tags=["work"])
     results = tmp_store.search("Alice")
     assert len(results) > 0
     assert any("Alice" in r.content for r in results)
@@ -240,7 +240,7 @@ def test_mock_llm_compress(tmp_store, mock_llm):
 
 
 def test_mock_llm_rerank(tmp_store, mock_llm):
-    tmp_store.add("About the user", layer=1)
+    tmp_store.add("Alice is a visual learner", layer=1)
     tmp_store.add("University campus", layer=1)
     candidates = tmp_store.get_by_layer(1)
     reranked = mock_llm.rerank("Alice", candidates)

@@ -68,7 +68,7 @@ openclaw plugins enable nested-memory
 
 ```bash
 # メモリ追加
-python cli.py add "User is INFP-T" --layer 2 --tags "person,profile" --importance 0.9
+python cli.py add "Alice prefers visual learning" --layer 2 --tags "person,profile" --importance 0.9
 
 # 全文検索
 python cli.py search "Alice" --layer 2 --limit 5

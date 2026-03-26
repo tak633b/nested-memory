@@ -13,7 +13,7 @@ compatibility:
 allowed-tools: exec Read Write Edit web_search
 metadata:
   version: "0.1.0"
-  author: "BALTHASAR Tech (baltech)"
+  author: "nested-memory contributors"
   tags:
     - memory
     - mcp

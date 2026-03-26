@@ -9,7 +9,7 @@
   <key>ProgramArguments</key>
   <array>
     <string>/usr/bin/python3</string>
-    <string>~/.openclaw/extensions/nested-memory/cli.py</string>
+    <string>__HOME__/.openclaw/extensions/nested-memory/cli.py</string>
     <string>compress</string>
     <string>--layer</string>
     <string>1</string>
@@ -24,18 +24,18 @@
   </dict>
 
   <key>WorkingDirectory</key>
-  <string>~/.openclaw/extensions/nested-memory</string>
+  <string>__HOME__/.openclaw/extensions/nested-memory</string>
 
   <key>StandardOutPath</key>
-  <string>~/.openclaw/logs/nested-memory-daily.log</string>
+  <string>__HOME__/.openclaw/logs/nested-memory-daily.log</string>
 
   <key>StandardErrorPath</key>
-  <string>~/.openclaw/logs/nested-memory-daily.err</string>
+  <string>__HOME__/.openclaw/logs/nested-memory-daily.err</string>
 
   <key>EnvironmentVariables</key>
   <dict>
     <key>HOME</key>
-    <string>~</string>
+    <string>__HOME__</string>
     <key>PATH</key>
     <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
   </dict>

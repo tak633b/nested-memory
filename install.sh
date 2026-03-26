@@ -59,6 +59,8 @@ for PLIST in "${DAILY_PLIST}" "${WEEKLY_PLIST}"; do
   fi
 
   cp "${SRC}" "${DST}"
+  # Expand __HOME__ placeholder with actual home directory
+  sed -i "" "s|__HOME__|${HOME}|g" "${DST}"
   launchctl load "${DST}"
   echo "  ✓ ロード完了: ${PLIST}"
 done

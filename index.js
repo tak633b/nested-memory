@@ -14,11 +14,12 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import path from "node:path";
+import os from "node:os";
 
 const execFileAsync = promisify(execFile);
 
 const EXT_DIR = path.resolve(
-  process.env.HOME || "~",
+  process.env.HOME || os.homedir(),
   ".openclaw/extensions/nested-memory"
 );
 

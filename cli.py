@@ -266,7 +266,7 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python cli.py add "User is INFP-T" --layer 2 --tags "person,profile" --importance 0.9
+  python cli.py add "Alice prefers visual learning" --layer 2 --tags "person,profile" --importance 0.9
   python cli.py search "Alice" --layer 2
   python cli.py stats
   python cli.py compress --from-layer 1 --force
