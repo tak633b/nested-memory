@@ -92,10 +92,11 @@ def _resolve_layer(layer_arg) -> Optional[int]:
 
 
 def cmd_compress(args):
-    """手動圧縮"""
+    """Run compression manually or trigger auto-compression check."""
     from_layer = _resolve_layer(args.from_layer) if args.from_layer else None
     force = args.force
     dry_run = getattr(args, "dry_run", False)
+    auto_l4 = not getattr(args, "no_auto_l4", False)
 
     store = get_store(args.db)
 
@@ -138,7 +139,7 @@ def cmd_compress(args):
         sys.exit(1)
 
     from nested_memory.layers import AutoCompressionScheduler
-    scheduler = AutoCompressionScheduler(store, llm)
+    scheduler = AutoCompressionScheduler(store, llm, auto_l4=auto_l4)
 
     if from_layer:
         result = scheduler.compress_layer_now(from_layer, force=force)
@@ -297,7 +298,9 @@ Examples:
     p_compress = subparsers.add_parser("compress", help="圧縮実行")
     p_compress.add_argument("--from-layer", dest="from_layer", default=None,
                             help="圧縮元層 (1/2/3 または episodic/semantic/procedural)")
-    p_compress.add_argument("--force", action="store_true", help="閾値未満でも強制実行")
+    p_compress.add_argument("--force", action="store_true", help="Force compression even below threshold")
+    p_compress.add_argument("--no-auto-l4", dest="no_auto_l4", action="store_true",
+                            help="Disable automatic L3→L4 compression (manual-only for Meta layer)")
     p_compress.add_argument("--dry-run", dest="dry_run", action="store_true",
                             help="件数とAPI呼び出し見積もりを表示してexit（実際には圧縮しない）")
 

@@ -83,13 +83,18 @@ class AutoCompressionScheduler:
     各層のメモリ数が閾値を超えたら自動圧縮
     """
 
-    THRESHOLDS = {1: 50, 2: 100}  # L3→L4は意図しない自動昇格を防ぐため手動のみ（task#91）
+    THRESHOLDS = {1: 50, 2: 100, 3: 30}  # L3→L4 auto-compression enabled by default (disable with auto_l4=False)
     BATCH_SIZE = 20  # 1回の圧縮バッチサイズ
 
-    def __init__(self, store: NestedMemoryStore, llm=None):
+    def __init__(self, store: NestedMemoryStore, llm=None, auto_l4: bool = True):
         self.store = store
         self.llm = llm
         self.engine = CompressionEngine(store, llm)
+        # When auto_l4=False, remove L3→L4 from automatic thresholds (manual-only mode)
+        if not auto_l4:
+            self._thresholds = {k: v for k, v in self.THRESHOLDS.items() if k != 3}
+        else:
+            self._thresholds = dict(self.THRESHOLDS)
 
     def check_and_compress(self, verbose: bool = True) -> dict:
         """
@@ -99,7 +104,7 @@ class AutoCompressionScheduler:
         results = {}
         counts = self.store.count_by_layer()
 
-        for layer, threshold in self.THRESHOLDS.items():
+        for layer, threshold in self._thresholds.items():
             count = counts.get(layer, 0)
             if count <= threshold:
                 if verbose:
@@ -141,7 +146,7 @@ class AutoCompressionScheduler:
             print(f"[Scheduler] L{from_layer}: メモリなし")
             return None
 
-        threshold = self.THRESHOLDS.get(from_layer, 0)
+        threshold = self._thresholds.get(from_layer, 0)
         if not force and len(memories) <= threshold:
             print(f"[Scheduler] L{from_layer}: {len(memories)}/{threshold} — 閾値未満（--force で強制実行）")
             return None

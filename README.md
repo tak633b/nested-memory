@@ -24,12 +24,17 @@ External memory tools exist, but they come with friction: a vector DB to run, an
 Memories are distilled upward through 4 layers automatically:
 
 ```
-L4: META        — Self-model, system-level patterns     [manual]
-L3: PROCEDURAL  — Crystallized workflows, habits        [weekly compression]
-L2: SEMANTIC    — Extracted facts, decisions            [daily compression]
+L4: META        — Self-model, system-level patterns     [auto, threshold: 30]
+L3: PROCEDURAL  — Crystallized workflows, habits        [auto, threshold: 100]
+L2: SEMANTIC    — Extracted facts, decisions            [auto, threshold: 50]
 L1: EPISODIC    — Raw observations, conversation notes  [session-end]
          ↑ Each layer distilled by LLM "compression function"
 ```
+
+> **L4 control:** Auto-compression is on by default. To keep L4 (Meta) manual:
+> ```bash
+> python3 cli.py compress --no-auto-l4
+> ```
 
 **Before nested-memory:**
 ```

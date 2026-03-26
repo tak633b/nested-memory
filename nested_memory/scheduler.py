@@ -35,7 +35,7 @@ def run_daily(db_path: str = DEFAULT_DB_PATH, verbose: bool = True) -> dict:
     scheduler = AutoCompressionScheduler(store, llm)
 
     if verbose:
-        print(f"[DailyCron] {datetime.now().isoformat()} — L1→L2チェック開始")
+        print(f"[DailyCron] {datetime.now().isoformat()} — L1→L2 check start")
 
     results = {}
     counts = store.count_by_layer()
@@ -47,11 +47,11 @@ def run_daily(db_path: str = DEFAULT_DB_PATH, verbose: bool = True) -> dict:
         results = result
     else:
         if verbose:
-            print(f"[DailyCron] L1: {l1_count}/{threshold} — 閾値未満、スキップ")
+            print(f"[DailyCron] L1: {l1_count}/{threshold} — below threshold, skipping")
 
     store.delete_expired()
     if verbose:
-        print("[DailyCron] 期限切れメモリを削除しました")
+        print("[DailyCron] expired memories deleted")
 
     store.close()
     return results
@@ -64,7 +64,7 @@ def run_weekly(db_path: str = DEFAULT_DB_PATH, verbose: bool = True) -> dict:
     scheduler = AutoCompressionScheduler(store, llm)
 
     if verbose:
-        print(f"[WeeklyCron] {datetime.now().isoformat()} — L2→L3チェック開始")
+        print(f"[WeeklyCron] {datetime.now().isoformat()} — L2→L3 check start")
 
     counts = store.count_by_layer()
     l2_count = counts.get(2, 0)
@@ -76,7 +76,7 @@ def run_weekly(db_path: str = DEFAULT_DB_PATH, verbose: bool = True) -> dict:
         results = result
     else:
         if verbose:
-            print(f"[WeeklyCron] L2: {l2_count}/{threshold} — 閾値未満、スキップ")
+            print(f"[WeeklyCron] L2: {l2_count}/{threshold} — below threshold, skipping")
 
     store.close()
     return results
