@@ -79,7 +79,13 @@ Extraction criteria:
 
 Output format: JSON array only. No explanatory text.
 [{"content": "memory content (1-2 sentences)", "tags": ["tag1", "tag2"], "importance": 0.0-1.0}]
-Only extract entries with importance >= 0.7 (noise reduction)."""
+Only extract entries with importance >= 0.7 (noise reduction).
+
+Importance scoring guide:
+- 0.1-0.4: trivial, filler, greetings, acknowledgements
+- 0.5-0.6: general conversation, routine information
+- 0.7-0.8: decisions, discoveries, preferences, project updates
+- 0.9-1.0: critical changes, major events, errors/failures, explicit "remember this\""""
 
 L1_TO_L2_SYSTEM = """You are an AI that compresses episodic memories into semantic memories.
 Integrate and compress the following episodic memories (conversation fragments) semantically.

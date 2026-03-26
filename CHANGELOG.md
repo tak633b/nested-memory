@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.1] - 2026-03-26
+
+### Added
+- `deduplicate_similar()`: FTS5 BM25-based deduplication (dry-run default)
+- `nm dedupe` CLI command with `--threshold` and `--dry-run` flags
+
+### Improved
+- `EXTRACT_SYSTEM` prompt: added importance scoring distribution guide (0.1-1.0)
+- `add()`: automatic tag normalization (e.g. "L1" -> "episodic")
+
 ## [0.1.0] - 2026-03-26
 
 ### Added

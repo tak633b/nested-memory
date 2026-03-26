@@ -71,7 +71,7 @@ class TestMemoryLLM:
         """キーなしで初期化するとRuntimeError"""
         monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
         with patch("nested_memory.llm._get_anthropic_key", return_value=""):
-            with pytest.raises(RuntimeError, match="LLM APIキー"):
+            with pytest.raises(RuntimeError, match="LLM API key not found"):
                 from nested_memory.llm import MemoryLLM
                 MemoryLLM()
 
@@ -184,3 +184,16 @@ class TestMemoryLLM:
         with patch.object(memory_llm, "_call", return_value="[0, 99, -1]"):
             result = memory_llm.rerank("query", mock_memories)
         assert len(result) == 1
+
+
+# ─────────────────────────────────────────
+# Importance prompt guide (R2)
+# ─────────────────────────────────────────
+
+def test_importance_prompt_contains_guide():
+    """EXTRACT_SYSTEMに重要度分布ガイドが含まれること"""
+    from nested_memory.llm import EXTRACT_SYSTEM
+    assert "0.9-1.0" in EXTRACT_SYSTEM
+    assert "0.1-0.4" in EXTRACT_SYSTEM
+    assert "0.7-0.8" in EXTRACT_SYSTEM
+    assert "Importance scoring guide" in EXTRACT_SYSTEM

@@ -13,6 +13,24 @@ from typing import Optional
 
 DEFAULT_DB_PATH = os.path.expanduser("~/.nested-memory.db")
 
+TAG_NORMALIZATION = {
+    "L1-episodic": "episodic",
+    "L1": "episodic",
+    "episodic-memory": "episodic",
+    "L2-semantic": "semantic",
+    "L2": "semantic",
+    "semantic-memory": "semantic",
+    "L3-procedural": "procedural",
+    "L3": "procedural",
+    "L4-meta": "meta",
+    "L4": "meta",
+    "session-summary": "session-summary",
+}
+
+
+def _normalize_tags(tags: list) -> list:
+    return [TAG_NORMALIZATION.get(t, t) for t in tags]
+
 LAYER_TTL_DAYS = {
     1: 7,    # L1 Episodic
     2: 90,   # L2 Semantic
@@ -209,8 +227,7 @@ class NestedMemoryStore:
         source: Optional[str] = None,
     ) -> str:
         """メモリを追加してIDを返す"""
-        if tags is None:
-            tags = []
+        tags = _normalize_tags(tags or [])
         mem_id = str(uuid.uuid4())
         now = _now_iso()
         expires = _expires_iso(layer)
@@ -384,6 +401,105 @@ class NestedMemoryStore:
                 layer_presence=json.loads(r["layer_presence"] or "{}"),
             ))
         return result
+
+    def deduplicate_similar(
+        self,
+        layer: int = 1,
+        threshold: float = 0.8,
+        dry_run: bool = True,
+    ) -> list:
+        """
+        FTS5 BM25スコアで類似度の高いメモリペアを検出する。
+        dry_run=True(デフォルト): 削除せず候補リストだけ返す
+        dry_run=False: 低スコア側を削除してマージメモを残す
+        戻り値: [{"kept": memory_id, "removed": memory_id, "score": float,
+                 "merged": bool}]
+        """
+        memories = self.get_by_layer(layer)
+        if len(memories) < 2:
+            return []
+
+        results = []
+        processed_ids: set = set()
+
+        for mem in memories:
+            if mem.id in processed_ids:
+                continue
+
+            # FTS5で類似メモリを検索
+            escaped = mem.content.replace('"', '""')
+            query = f'"{escaped}"'
+            try:
+                rows = self._conn.execute(
+                    """SELECT m.id, m.importance, m.content,
+                              bm25(memories_fts) AS score
+                       FROM memories m
+                       JOIN memories_fts f ON m.rowid = f.rowid
+                       WHERE memories_fts MATCH ?
+                         AND m.compressed = 0
+                         AND m.layer = ?
+                         AND m.id != ?
+                       ORDER BY score
+                       LIMIT 5""",
+                    (query, layer, mem.id),
+                ).fetchall()
+            except sqlite3.OperationalError:
+                continue
+
+            for row in rows:
+                candidate_id = row["id"]
+                if candidate_id in processed_ids:
+                    continue
+                # BM25スコアは負値（絶対値が大きいほど類似度高）
+                raw_score = row["score"]
+                # 正規化: BM25スコアを0-1のsimilarityに変換
+                # スコアが -threshold 以下なら類似とみなす（閾値調整）
+                similarity = min(1.0, abs(raw_score) / 10.0)
+                if similarity < threshold:
+                    continue
+
+                candidate_importance = row["importance"]
+                candidate_content = row["content"]
+
+                # importanceが高い方をkeep
+                if mem.importance >= candidate_importance:
+                    kept_id, removed_id = mem.id, candidate_id
+                    kept_content = mem.content
+                else:
+                    kept_id, removed_id = candidate_id, mem.id
+                    kept_content = candidate_content
+
+                if dry_run:
+                    results.append({
+                        "kept": kept_id,
+                        "removed": removed_id,
+                        "score": round(similarity, 4),
+                        "merged": False,
+                    })
+                else:
+                    # 削除してマージメモを付記
+                    merged_content = kept_content + f" (merged: {removed_id})"
+                    self._conn.execute(
+                        "UPDATE memories SET content = ? WHERE id = ?",
+                        (merged_content, kept_id),
+                    )
+                    self._conn.execute(
+                        "DELETE FROM memories WHERE id = ?",
+                        (removed_id,),
+                    )
+                    self._conn.commit()
+                    results.append({
+                        "kept": kept_id,
+                        "removed": removed_id,
+                        "score": round(similarity, 4),
+                        "merged": True,
+                    })
+
+                processed_ids.add(removed_id)
+                processed_ids.add(kept_id)
+                break  # 1メモリにつき1ペアのみ
+
+        return results
 
     def delete_expired(self) -> int:
         """期限切れメモリを削除。削除件数を返す"""

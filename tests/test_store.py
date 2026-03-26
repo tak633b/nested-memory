@@ -245,3 +245,69 @@ def test_mock_llm_rerank(tmp_store, mock_llm):
     candidates = tmp_store.get_by_layer(1)
     reranked = mock_llm.rerank("Alice", candidates)
     assert len(reranked) == len(candidates)
+
+
+# ─────────────────────────────────────────
+# tag normalization (R3)
+# ─────────────────────────────────────────
+
+def test_normalize_tags_known():
+    """TAG_NORMALIZATION内のキーが正規化されること"""
+    from nested_memory.store import _normalize_tags, TAG_NORMALIZATION
+    for raw, expected in TAG_NORMALIZATION.items():
+        result = _normalize_tags([raw])
+        assert result == [expected], f"Expected {raw!r} -> {expected!r}, got {result}"
+
+
+def test_normalize_tags_unknown():
+    """未知のタグはそのまま通ること"""
+    from nested_memory.store import _normalize_tags
+    unknown_tags = ["custom-tag", "my-label", "foo"]
+    result = _normalize_tags(unknown_tags)
+    assert result == unknown_tags
+
+
+def test_add_normalizes_tags(tmp_store):
+    """add() でタグが正規化されること"""
+    mem_id = tmp_store.add("タグ正規化テスト", layer=1, tags=["L1", "L2-semantic"])
+    mem = tmp_store.get(mem_id)
+    assert "episodic" in mem.tags
+    assert "semantic" in mem.tags
+    assert "L1" not in mem.tags
+    assert "L2-semantic" not in mem.tags
+
+
+# ─────────────────────────────────────────
+# deduplicate_similar (R1)
+# ─────────────────────────────────────────
+
+def test_deduplicate_dry_run(tmp_store):
+    """重複候補が返るがDBは変わらないこと"""
+    # 同一内容を2件追加（FTS5で高スコアになる）
+    content = "Alice prefers visual learning styles and visual approaches"
+    tmp_store.add(content, layer=1, importance=0.8)
+    tmp_store.add(content, layer=1, importance=0.7)
+
+    before_count = len(tmp_store.get_by_layer(1))
+    results = tmp_store.deduplicate_similar(layer=1, threshold=0.1, dry_run=True)
+    after_count = len(tmp_store.get_by_layer(1))
+
+    # dry_run=True なのでDB件数は変わらない
+    assert after_count == before_count
+    # 候補リストは返る
+    assert isinstance(results, list)
+    for item in results:
+        assert "kept" in item
+        assert "removed" in item
+        assert "score" in item
+        assert item["merged"] is False
+
+
+def test_deduplicate_empty_layer(tmp_store):
+    """メモリが0-1件の場合は空リストを返す"""
+    results = tmp_store.deduplicate_similar(layer=1, dry_run=True)
+    assert results == []
+
+    tmp_store.add("一件だけ", layer=1)
+    results = tmp_store.deduplicate_similar(layer=1, dry_run=True)
+    assert results == []

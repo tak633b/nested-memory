@@ -232,6 +232,39 @@ def cmd_extract(args):
     store.close()
 
 
+def cmd_dedupe(args):
+    """FTS5 BM25で類似メモリを検出・削除"""
+    store = get_store(args.db)
+    layer = _resolve_layer(args.layer) if args.layer else 1
+    threshold = args.threshold
+    dry_run = args.dry_run
+
+    results = store.deduplicate_similar(
+        layer=layer, threshold=threshold, dry_run=dry_run
+    )
+
+    if not results:
+        print(f"✅ 重複候補なし (L{layer}, threshold={threshold})")
+        store.close()
+        return
+
+    mode = "dry-run" if dry_run else "実行"
+    print(f"🔍 重複候補 {len(results)} ペア [{mode}]"
+          f" (L{layer}, threshold={threshold}):")
+    print()
+    for item in results:
+        merged_mark = "✅ merged" if item.get("merged") else "📋 (dry-run)"
+        print(f"  kept:    {item['kept'][:16]}...")
+        score = item['score']
+        print(f"  removed: {item['removed'][:16]}..."
+              f" score={score:.4f} {merged_mark}")
+        print()
+
+    if dry_run:
+        print("ℹ️  --no-dry-run を指定すると実際に削除します")
+    store.close()
+
+
 def cmd_delete_expired(args):
     """期限切れメモリを削除"""
     store = get_store(args.db)
@@ -318,6 +351,19 @@ Examples:
     # delete-expired
     subparsers.add_parser("delete-expired", help="期限切れメモリを削除")
 
+    # dedupe
+    p_dedupe = subparsers.add_parser("dedupe", help="FTS5 BM25で類似メモリを検出・削除")
+    p_dedupe.add_argument("--layer", default="1",
+                          help="対象層 (1/2/3/4 または"
+                               " episodic/semantic/procedural/meta)")
+    p_dedupe.add_argument("--threshold", type=float, default=0.8,
+                          help="類似度閾値 (0.0-1.0)")
+    p_dedupe.add_argument("--dry-run", dest="dry_run",
+                          action="store_true", default=True,
+                          help="候補表示のみ（削除しない）[デフォルト]")
+    p_dedupe.add_argument("--no-dry-run", dest="dry_run", action="store_false",
+                          help="実際に削除する")
+
     # list
     p_list = subparsers.add_parser("list", help="指定層のメモリ一覧")
     p_list.add_argument("--layer", default="1",
@@ -339,6 +385,8 @@ Examples:
         cmd_extract(args)
     elif args.command == "delete-expired":
         cmd_delete_expired(args)
+    elif args.command == "dedupe":
+        cmd_dedupe(args)
     elif args.command == "list":
         cmd_list(args)
     else:
