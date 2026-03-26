@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.baltech.nested-memory.daily</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/python3</string>
+    <string>~/.openclaw/extensions/nested-memory/cli.py</string>
+    <string>compress</string>
+    <string>--layer</string>
+    <string>1</string>
+  </array>
+
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>3</integer>
+    <key>Minute</key>
+    <integer>0</integer>
+  </dict>
+
+  <key>WorkingDirectory</key>
+  <string>~/.openclaw/extensions/nested-memory</string>
+
+  <key>StandardOutPath</key>
+  <string>~/.openclaw/logs/nested-memory-daily.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>~/.openclaw/logs/nested-memory-daily.err</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>HOME</key>
+    <string>~</string>
+    <key>PATH</key>
+    <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
+  </dict>
+
+  <key>RunAtLoad</key>
+  <false/>
+</dict>
+</plist>

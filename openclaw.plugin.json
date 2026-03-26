@@ -1,0 +1,61 @@
+{
+  "id": "nested-memory",
+  "kind": "memory",
+  "name": "Nested Memory",
+  "description": "4-layer nested memory system inspired by Nested Learning (NeurIPS 2025, arXiv:2512.24695). Episodic→Semantic→Procedural→Meta compression via LLM.",
+  "version": "1.0.0",
+  "uiHints": {
+    "autoCapture": {
+      "label": "Auto-Capture",
+      "help": "Automatically extract L1 memories from conversation end"
+    },
+    "autoRecall": {
+      "label": "Auto-Recall",
+      "help": "Inject relevant memories into agent context before start"
+    },
+    "dbPath": {
+      "label": "Database Path",
+      "placeholder": "~/.openclaw/nested-memory.db",
+      "advanced": true
+    },
+    "autoCompress": {
+      "label": "Auto-Compress",
+      "help": "Run compression scheduler on daily/weekly cron",
+      "advanced": true
+    }
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "autoCapture": {
+        "type": "boolean",
+        "default": true
+      },
+      "autoRecall": {
+        "type": "boolean",
+        "default": true
+      },
+      "autoCompress": {
+        "type": "boolean",
+        "default": true
+      },
+      "dbPath": {
+        "type": "string",
+        "default": "~/.openclaw/nested-memory.db"
+      },
+      "extractionModel": {
+        "type": "string",
+        "default": "claude-haiku-4-5"
+      },
+      "compressionModel": {
+        "type": "string",
+        "default": "claude-sonnet-4-6"
+      },
+      "thresholds": {
+        "type": "object",
+        "default": { "L1": 50, "L2": 100, "L3": 30 }
+      }
+    }
+  }
+}
