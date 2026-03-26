@@ -5,6 +5,7 @@
 #   1. extensions/ への配置確認
 #   2. DB スキーマ初期化
 #   3. launchd plist 配置 & ロード
+#   4. OpenClaw プラグイン登録（autoCapture/autoRecall 有効化）
 
 set -euo pipefail
 
@@ -40,7 +41,7 @@ echo "[3/4] DB スキーマを初期化..."
 echo "  ✓ DB 初期化完了"
 
 # ── 4. launchd plist 配置 & ロード ────────────────────────────────────────
-echo "[4/4] launchd plist を配置..."
+echo "[4/5] launchd plist を配置..."
 mkdir -p "${LAUNCH_AGENTS}"
 
 for PLIST in "${DAILY_PLIST}" "${WEEKLY_PLIST}"; do
@@ -64,6 +65,22 @@ for PLIST in "${DAILY_PLIST}" "${WEEKLY_PLIST}"; do
   launchctl load "${DST}"
   echo "  ✓ ロード完了: ${PLIST}"
 done
+
+# ── 5. OpenClaw プラグイン登録 ────────────────────────────────────────────
+echo "[5/5] OpenClaw にプラグインとして登録..."
+if command -v openclaw &>/dev/null; then
+  # 既に登録済みなら一旦 uninstall してから再登録（冪等性）
+  if openclaw plugins list 2>/dev/null | grep -q "nested-memory"; then
+    echo "  → 既存プラグインを更新します"
+    openclaw plugins uninstall nested-memory 2>/dev/null || true
+  fi
+  openclaw plugins install --link "${EXT_DIR}"
+  openclaw plugins enable nested-memory 2>/dev/null || true
+  echo "  ✓ OpenClaw プラグイン登録完了（autoCapture / autoRecall 有効）"
+else
+  echo "  ⚠ openclaw コマンドが見つかりません。手動で登録してください:"
+  echo "      openclaw plugins install --link ${EXT_DIR}"
+fi
 
 echo ""
 echo "=== インストール完了 ==="

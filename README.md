@@ -69,8 +69,13 @@ Session 3: Claude already knows the constraints before you type them
 git clone https://github.com/tak633b/nested-memory.git
 cd nested-memory
 pip install anthropic
-python3 nested_memory/store.py --init
+./install.sh
 ```
+
+`install.sh` handles everything:
+- DB schema initialization
+- launchd jobs for background compression (macOS only)
+- OpenClaw plugin registration (if `openclaw` is in your PATH)
 
 ### Step 2: Register as MCP server
 
