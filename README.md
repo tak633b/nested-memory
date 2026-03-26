@@ -172,3 +172,83 @@ python3 -m pytest tests/ -v
 ## DB
 
 デフォルト: `~/.openclaw/nested-memory.db`
+
+カスタムパスを指定する場合:
+```bash
+# CLI
+python3 cli.py stats --db /path/to/my-memory.db
+
+# MCP環境変数で指定
+"env": {
+  "NESTED_MEMORY_DB": "/path/to/my-memory.db",
+  "ANTHROPIC_API_KEY": "sk-ant-..."
+}
+```
+
+---
+
+## Claude Codeでの使用例
+
+MCP設定後、Claude Codeのセッション内で自然言語・ツール直接呼び出しの両方で使えます。
+
+### 基本的な使い方
+
+```
+# 会話内容をL1（Episodic）に記録
+Use memory_add to store: "Decided to use SQLite over PostgreSQL for zero-dependency deployment"
+→ layer=1, tags=["decision","architecture"]
+
+# キーワードで検索
+Use memory_search to find memories about "SQLite"
+
+# 統計確認
+Use memory_stats
+```
+
+### 会話からの自動抽出 → 圧縮フロー
+
+```
+# Step 1: 会話テキストからL1を自動抽出
+Use memory_add to extract key facts from this conversation:
+"We discussed three options for storage: SQLite, PostgreSQL, and DynamoDB.
+ We chose SQLite because it requires zero infrastructure and fits our local-first philosophy."
+
+# Step 2: L1が溜まったらL2へ圧縮（LLM要約）
+Use memory_compress with layer=1
+
+# Step 3: 圧縮の完了を確認
+Use memory_compress_status with job_id=<returned_id>
+
+# Step 4: 圧縮後の結果を検索
+Use memory_search with query="storage decision" layer=2
+```
+
+### プロジェクト横断での記憶管理
+
+```
+# プロジェクトAの決定をタグ付きで保存
+Use memory_add: "Project A: selected React + TypeScript for frontend"
+→ layer=1, tags=["project-a","frontend","decision"], importance=0.8
+
+# プロジェクトBの学習を保存
+Use memory_add: "Project B: learned that FTS5 trigram tokenizer is needed for CJK search"
+→ layer=1, tags=["project-b","sqlite","lesson"], importance=0.9
+
+# タグで絞り込み検索
+Use memory_search: query="decision" tags=["project-a"]
+
+# エンティティ（人物・概念）一覧
+Use memory_entities with type="concept"
+```
+
+### `.clauderc` / `CLAUDE.md` との組み合わせ
+
+プロジェクトの `CLAUDE.md` に以下を追記することで、Claude Codeが自動的にメモリを活用します:
+
+```markdown
+## Memory
+Use the `nested-memory` MCP tools to:
+- Store important decisions with `memory_add` (layer=2, importance≥0.8)
+- Search past context with `memory_search` before answering questions about prior work
+- After long sessions, compress L1 memories with `memory_compress`
+```
