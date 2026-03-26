@@ -1,28 +1,56 @@
 # nested-memory
 
-> A 4-layer nested memory system for Claude Code and Claude Desktop via MCP.  
+> Persistent, compressing long-term memory for Claude Code — via MCP.  
 > Inspired by **Nested Learning** (NeurIPS 2025, [arXiv:2512.24695](https://arxiv.org/abs/2512.24695))
 
 ---
 
-## What is this?
+## The problem
 
-`nested-memory` gives Claude Code persistent, compressing long-term memory — stored entirely **locally** in a single SQLite file.
+Claude Code is great at tasks — but it forgets everything the moment a session ends.
 
-Memories are automatically distilled upward through 4 layers using LLM compression:
+You find yourself repeating the same context every time:
+
+- *"We decided to use SQLite over Postgres — remember?"*
+- *"The rate limit on that API is 100 req/min. I told you last week."*
+- *"Our coding style is X. Stop suggesting Y."*
+
+External memory tools exist, but they come with friction: a vector DB to run, an API to call, embeddings to maintain. Most teams give up and just paste context manually.
+
+## The solution
+
+`nested-memory` gives Claude Code **persistent, self-compressing long-term memory** — stored entirely in a single local SQLite file, no infrastructure required.
+
+Memories are distilled upward through 4 layers automatically:
 
 ```
 L4: META        — Self-model, system-level patterns     [manual]
 L3: PROCEDURAL  — Crystallized workflows, habits        [weekly compression]
 L2: SEMANTIC    — Extracted facts, decisions            [daily compression]
 L1: EPISODIC    — Raw observations, conversation notes  [session-end]
-         ↑ Each layer is distilled by an LLM "compression function"
+         ↑ Each layer distilled by LLM "compression function"
+```
+
+**Before nested-memory:**
+```
+Session 1: "We chose React. Rate limit is 100/min."
+Session 2: [Claude has no memory of session 1]
+Session 3: [Claude suggests Postgres again]
+```
+
+**After nested-memory:**
+```
+Session 1: memory_add "Chose React, rate limit 100/min" → L1
+  → nightly compression: key facts promoted to L2 (Semantic)
+Session 2: memory_search "architecture" → finds React decision instantly
+Session 3: Claude already knows the constraints before you type them
 ```
 
 **Key properties:**
 - 🗄️ Zero infrastructure — single SQLite file, no server needed
-- 🔍 Full-text search via FTS5 (works without embeddings)
+- 🔍 Full-text search via SQLite FTS5 (no embeddings required)
 - 🤖 LLM compression via Claude Haiku/Sonnet (Anthropic API)
+- 🏷️ Tag + importance filtering for precise retrieval
 - 🔌 Works as Claude Code MCP server **and** OpenClaw extension (same DB)
 - 🧪 83 tests, 94% coverage
 

@@ -274,7 +274,7 @@ Examples:
   python cli.py entities --type person
         """
     )
-    parser.add_argument("--db", default=DEFAULT_DB_PATH, help=f"DBパス (default: {DEFAULT_DB_PATH})")
+    parser.add_argument("--db", default=DEFAULT_DB_PATH, help=f"Path to the SQLite database (default: {DEFAULT_DB_PATH})")
     subparsers = parser.add_subparsers(dest="command")
 
     # add

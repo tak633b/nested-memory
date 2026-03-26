@@ -11,3 +11,4 @@ build/
 *.log
 .pytest_cache/
 htmlcov/
+.mypy_cache/

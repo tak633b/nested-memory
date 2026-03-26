@@ -15,7 +15,7 @@
     },
     "dbPath": {
       "label": "Database Path",
-      "placeholder": "~/.openclaw/nested-memory.db",
+      "placeholder": "~/.nested-memory.db",
       "advanced": true
     },
     "autoCompress": {
@@ -42,7 +42,7 @@
       },
       "dbPath": {
         "type": "string",
-        "default": "~/.openclaw/nested-memory.db"
+        "default": "~/.nested-memory.db"
       },
       "extractionModel": {
         "type": "string",
@@ -54,7 +54,11 @@
       },
       "thresholds": {
         "type": "object",
-        "default": { "L1": 50, "L2": 100, "L3": 30 }
+        "default": {
+          "L1": 50,
+          "L2": 100,
+          "L3": 30
+        }
       }
     }
   }
