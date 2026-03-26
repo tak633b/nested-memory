@@ -36,7 +36,7 @@ echo "  ✓ ${LOG_DIR}"
 
 # ── 3. DB スキーマ初期化 ───────────────────────────────────────────────────
 echo "[3/4] DB スキーマを初期化..."
-python3 "${EXT_DIR}/nested_memory/store.py" --init
+/usr/bin/env python3 "${EXT_DIR}/nested_memory/store.py" --init
 echo "  ✓ DB 初期化完了"
 
 # ── 4. launchd plist 配置 & ロード ────────────────────────────────────────
