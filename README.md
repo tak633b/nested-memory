@@ -51,18 +51,81 @@ openclaw plugins enable nested-memory
 ```
 
 ### Claude Code MCP
-`claude_desktop_config.json` に追加:
+
+Claude Code（またはClaude Desktop）からMCPサーバーとして使用できます。
+
+#### Step 1: リポジトリをクローン
+```bash
+git clone https://github.com/tak633b/nested-memory.git ~/.openclaw/extensions/nested-memory
+cd ~/.openclaw/extensions/nested-memory
+pip install anthropic
+python3 nested_memory/store.py --init
+```
+
+#### Step 2: MCP設定を追加
+
+**Claude Code** (`~/.claude.json` または `claude mcp add` コマンド):
+```bash
+claude mcp add nested-memory python3 /path/to/nested-memory/mcp_server.py
+```
+
+または手動で `~/.claude.json` を編集:
 ```json
 {
   "mcpServers": {
     "nested-memory": {
       "command": "python3",
-      "args": ["/Users/YOUR_USER/.openclaw/extensions/nested-memory/mcp_server.py"],
-      "env": { "ANTHROPIC_API_KEY": "sk-ant-..." }
+      "args": ["/path/to/nested-memory/mcp_server.py"],
+      "env": {
+        "ANTHROPIC_API_KEY": "sk-ant-..."
+      }
     }
   }
 }
 ```
+
+**Claude Desktop** (`claude_desktop_config.json`):
+- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "nested-memory": {
+      "command": "python3",
+      "args": ["/path/to/nested-memory/mcp_server.py"],
+      "env": {
+        "ANTHROPIC_API_KEY": "sk-ant-..."
+      }
+    }
+  }
+}
+```
+
+#### Step 3: 動作確認
+
+Claude CodeまたはClaude Desktopを再起動後、以下のように使えます:
+
+```
+# Claude Codeでの使用例
+> memory_add content="Learned about FTS5 full-text search in SQLite" layer=1 tags=["sqlite","search"]
+> memory_search query="SQLite" layer=2
+> memory_compress layer=1          # L1→L2に圧縮（バックグラウンド実行）
+> memory_compress_status job_id=<id>  # 圧縮の進捗確認
+> memory_stats
+```
+
+#### 利用可能なMCPツール
+
+| ツール | 説明 |
+|--------|------|
+| `memory_add` | メモリを指定層に追加 |
+| `memory_search` | 全文検索（FTS5）でメモリを検索 |
+| `memory_compress` | LLMで指定層を上位層に圧縮（非同期） |
+| `memory_compress_status` | 圧縮ジョブの進捗確認 |
+| `memory_stats` | 層ごとのメモリ統計を表示 |
+| `memory_list` | 指定層のメモリ一覧 |
+| `memory_entities` | エンティティ（人物・概念）一覧 |
 
 ## CLI使い方
 
