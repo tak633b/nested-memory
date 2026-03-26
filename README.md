@@ -184,20 +184,22 @@ python3 cli.py entities --type person
 
 ## DB
 
-Default path: `~/.openclaw/nested-memory.db`
+Default path: `~/.nested-memory.db`
 
-Custom path:
+To use a custom path:
 ```bash
 python3 cli.py stats --db /path/to/my-memory.db
 ```
 
-Via MCP environment variable:
+Or set via MCP environment variable:
 ```json
 "env": {
   "NESTED_MEMORY_DB": "/path/to/my-memory.db",
   "ANTHROPIC_API_KEY": "sk-ant-..."
 }
 ```
+
+> **Tip:** To scope memory per project, point `NESTED_MEMORY_DB` to a path inside your project directory (e.g. `./.nested-memory.db`). Add it to `.gitignore` to keep it local.
 
 ---
 
