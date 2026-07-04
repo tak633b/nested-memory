@@ -31,6 +31,21 @@ _llm = None
 
 # 非同期ジョブ管理
 _jobs: dict = {}  # job_id -> {"status": ..., "result": ..., "error": ..., "started_at": ...}
+_MAX_JOBS = 100  # 長時間稼働時の無制限成長を防ぐ上限
+
+
+def _evict_old_jobs():
+    """完了/失敗済みの古いジョブを退避し、_jobs の無制限成長を防ぐ"""
+    if len(_jobs) <= _MAX_JOBS:
+        return
+    finished = [
+        (jid, j["started_at"])
+        for jid, j in _jobs.items()
+        if j["status"] in ("done", "failed")
+    ]
+    finished.sort(key=lambda x: x[1])
+    for jid, _ in finished[: len(_jobs) - _MAX_JOBS]:
+        _jobs.pop(jid, None)
 
 
 def get_store() -> NestedMemoryStore:
@@ -246,6 +261,7 @@ def tool_compress(params: dict) -> dict:
     job_id = str(uuid.uuid4())
     timeout_seconds = params.get("timeout_seconds", 30)
 
+    _evict_old_jobs()
     _jobs[job_id] = {
         "status": "pending",
         "result": None,
