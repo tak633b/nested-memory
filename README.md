@@ -297,4 +297,4 @@ The same SQLite DB is shared between the MCP server and the OpenClaw extension.
 
 ## License
 
-MIT
+MIT, see [LICENSE](LICENSE).
